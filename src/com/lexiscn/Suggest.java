@@ -3,6 +3,7 @@ package com.lexiscn;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -13,10 +14,25 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.cjk.CJKAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.spell.NGramDistance;
 import org.apache.lucene.search.spell.PlainTextDictionary;
 import org.apache.lucene.search.spell.SpellChecker;
+import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
@@ -38,6 +54,10 @@ public class Suggest extends HttpServlet {
     SpellChecker spellchecker = null;
     Analyzer analyzer = null;
     
+    Directory trIndexDir = null;
+	IndexReader ir = null;
+	IndexSearcher is = null;
+    
 	/**
 	 * @see Servlet#init(ServletConfig)
 	 */
@@ -57,6 +77,13 @@ public class Suggest extends HttpServlet {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		try {
+			trIndexDir = FSDirectory.open(new File(webroot+"/data/index"));
+			ir = DirectoryReader.open(trIndexDir);
+			is = new IndexSearcher(ir);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -65,6 +92,8 @@ public class Suggest extends HttpServlet {
 	public void destroy() {
 		try {
 			spellchecker.close();
+			ir.close();
+			trIndexDir.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -75,29 +104,71 @@ public class Suggest extends HttpServlet {
 	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) 
 			throws ServletException, IOException {
-		Long st = System.currentTimeMillis();
+
 		// set response header
 		response.setContentType("text/html");
 		response.setCharacterEncoding("utf-8");
 		PrintWriter writer = response.getWriter();
+		
 		// init response content
-		String suggestStr = "";
 		String returnStr = "";
+		
 		// get parameter q
+		String suggestStr = "";
 		String q = request.getParameter("q");
 		if (null != q && q.length() >= 2) {
 			q = q.length() <= 3 ? q+" " : q;
-			String[] suggestions = spellchecker.suggestSimilar(q, 10, 0.6f);
+
+			long spst = System.currentTimeMillis();
+			String[] suggestions = spellchecker.suggestSimilar(q, 20, 0.6f);
 			for (String word : suggestions) {
 				suggestStr += word.trim()+"|";
 			}
+			long spet = System.currentTimeMillis();
+			
+			if (suggestStr.endsWith("|")) {
+				suggestStr = suggestStr.substring(0, suggestStr.length()-1);
+			}
+			String spellcheckerStr = "{\"suggest\":\"" + suggestStr + "\", \"time\":" + (spet - spst) + "}";
+			
+			ArrayList<String> text = getTermRelated(q.trim());
+			String termRelated = "";
+			long tret = System.currentTimeMillis();
+			for (int i=0; i<text.size(); i++) {
+				termRelated += text.get(i)+"|";
+			}
+			if (termRelated.endsWith("|")) {
+				termRelated = termRelated.substring(0, termRelated.length()-1);
+			}
+			String trStr = "{\"suggest\":\"" + termRelated + "\", \"time\":" + (tret - spet) + "}";
+			
+			returnStr = "[" + spellcheckerStr + ", " + trStr + "]";
 		}
-		Long et = System.currentTimeMillis();
-		if (suggestStr.endsWith("|")) {
-			suggestStr = suggestStr.substring(0, suggestStr.length()-1);
-		}
-		returnStr = "{\"suggest\":\"" + suggestStr + "\", \"time\":" + (et - st) + "}";
+		
 		writer.print(returnStr);
+	}
+	
+	private ArrayList<String> getTermRelated(String term) throws IOException {
+		ArrayList<String> related = new ArrayList<String>();
+
+		if (ir.numDocs()>0) {
+			Query query = new TermQuery(new Term("text", term));  
+			TopDocs hits = is.search(query, 20, 
+					new Sort(new SortField("corr", SortField.Type.FLOAT, true)));
+			
+			for (ScoreDoc scoreDoc: hits.scoreDocs) {
+				Document doc = is.doc(scoreDoc.doc);
+				String text[] = doc.getValues("text");
+				for (int i=0; i<text.length; i++) {
+					if (text[i].equals(term)) {
+						continue;
+					}
+					related.add(text[i]);
+				}
+			}
+		}
+		
+		return related;
 	}
 
 	@Override

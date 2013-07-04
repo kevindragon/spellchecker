@@ -47,6 +47,7 @@ import org.apache.solr.common.SolrDocumentList;
 public class SuggestIndexManager extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
+	String webroot = "";
     private String urlString = "http://localhost:8080/solr/termrelated/";
     private HttpSolrServer solr = null;
     private IndexWriter indexWriter = null;
@@ -62,11 +63,9 @@ public class SuggestIndexManager extends HttpServlet {
 	@Override
 	public void init(ServletConfig config) throws ServletException {
 		super.init();
-		String webroot = config.getServletContext().getRealPath("/");
-        IndexWriterConfig conf = new IndexWriterConfig(Version.LUCENE_43, null);
+		webroot = config.getServletContext().getRealPath("/");
 		try {
 			indexDir = FSDirectory.open(new File(webroot+"/data/index"));
-			indexWriter = new IndexWriter(indexDir, conf);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -79,63 +78,71 @@ public class SuggestIndexManager extends HttpServlet {
 			throws ServletException, IOException {
 		response.setContentType("text/html");
 		response.setCharacterEncoding("utf-8");
-		String webroot = request.getServletContext().getRealPath("/");
-		
-		ArrayList<String> lines = new ArrayList<String>();
-		String line = null;
-		BufferedReader reader = new BufferedReader(
-				new InputStreamReader (new FileInputStream(webroot+"/mydic.txt"), "UTF-8"));
-		while ((line = reader.readLine()) != null) {
-			lines.add(line);
-		}
-		
 		PrintWriter writer = response.getWriter();
 
-        solr = new HttpSolrServer(urlString);
+		String indexStatus = "index failed";
 
-		SolrQuery query = new SolrQuery();
-		query.setStart(0);
-        query.setRows(0);
-		
-		String t1 = null, t2 = null;
-		long tn1 = 0, tn2 = 0, n12 = 0, total = 0;
-		float corr = 0.0f;
-		
-		// get total doc
-		query.setQuery("*:*");
-		total = getNumFound(solr, query);
-		writer.println("<br>" + total + "<br>");
-		
-		for (int i=0; i<lines.size(); i++) {
-			for (int j=i+1; j<lines.size(); j++) {
-				t1 = lines.get(i);
-				t2 = lines.get(j);
-				
-				query.setQuery("text:\"" + t1 + "\"");
-				tn1 = getNumFound(solr, query);
-
-				query.setQuery("text:\"" + t2 + "\"");
-				tn2 = getNumFound(solr, query);;
-				
-				query.setQuery("text:\"" + t1 + "\" AND \"" + t2 + "\"");
-				n12 = getNumFound(solr, query);
-				
-				if (n12>0) {
-					corr = (float) (Math.log10(total/tn1) * Math.log10(total/tn2) * n12) / (tn1 + tn2 + n12);
-					index(t1, t2, corr);
-				}
-				
-				writer.println(t1 + " " + tn1 + " | " + 
-							   t2 + " " + tn2 + " | " + 
-							   t1 + "-" + t2 + " " + n12 + " | corr: " + corr + "<br>");
+		if (indexDir != null) {
+			ArrayList<String> lines = new ArrayList<String>();
+			String line = null;
+			BufferedReader reader = new BufferedReader(
+					new InputStreamReader (
+							new FileInputStream(webroot+"/mydic.txt"), "UTF-8"));
+			while ((line = reader.readLine()) != null) {
+				lines.add(line);
 			}
-		}
-		indexWriter.commit();
-		indexWriter.close();
 
-		indexDir.close();
+	        solr = new HttpSolrServer(urlString);
+
+			SolrQuery query = new SolrQuery();
+			query.setStart(0);
+	        query.setRows(0);
+			
+			String t1 = null, t2 = null;
+			long tn1 = 0, tn2 = 0, n12 = 0, total = 0;
+			float corr = 0.0f;
+			
+			// get total doc
+			query.setQuery("*:*");
+			total = getNumFound(solr, query);
+
+			if (!IndexWriter.isLocked(indexDir) && total>0) {
+		        IndexWriterConfig conf = new IndexWriterConfig(Version.LUCENE_43, null);
+				indexWriter = new IndexWriter(indexDir, conf);
+				indexWriter.deleteAll();
+				
+				for (int i=0; i<lines.size(); i++) {
+					for (int j=i+1; j<lines.size(); j++) {
+						t1 = lines.get(i);
+						t2 = lines.get(j);
+						
+						query.setQuery("text:\"" + t1 + "\"");
+						tn1 = getNumFound(solr, query);
+	
+						query.setQuery("text:\"" + t2 + "\"");
+						tn2 = getNumFound(solr, query);;
+						
+						query.setQuery("text:\"" + t1 + "\" AND \"" + t2 + "\"");
+						n12 = getNumFound(solr, query);
+						
+						if (n12>0) {
+							corr = (float) (Math.log10(total/tn1) * Math.log10(total/tn2) * n12) / (tn1 + tn2 + n12);
+							index(t1, t2, corr);
+						}
+						
+//						writer.println(t1 + " " + tn1 + " | " + 
+//									   t2 + " " + tn2 + " | " + 
+//									   t1 + "-" + t2 + " " + n12 + " | corr: " + corr + "<br>");
+					}
+				}
+				indexWriter.commit();
+				indexWriter.close();
+				indexStatus = "index success";
+			}
+
+		}
 		
-		writer.print("index success");
+		writer.print(indexStatus);
 	}
 	
 	private void index(String t1, String t2, float corr) {
@@ -172,6 +179,16 @@ public class SuggestIndexManager extends HttpServlet {
 			e.printStackTrace();
 		}
 		return num;
+	}
+
+	@Override
+	public void destroy() {
+		try {
+			indexDir.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		super.destroy();
 	}
 	
 }
