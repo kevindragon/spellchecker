@@ -44,12 +44,11 @@ public class Suggest extends HttpServlet {
 	public void init(ServletConfig config) throws ServletException {
 		String webroot = config.getServletContext().getRealPath("/");
 		try {
-//			analyzer = new NGramAnalyzer(2, 2);
-//			spellchecker = new SpellChecker(FSDirectory.open(new File(webroot+"/spellIndexDirectory")), 
-//					new NGramDistance(2));
 			analyzer = new CJKAnalyzer(Version.LUCENE_43);
+			File spellIndexDir = new File(webroot+"/spellIndexDirectory");
+			spellIndexDir.delete();
 			spellchecker = new SpellChecker(
-					FSDirectory.open(new File(webroot+"/spellIndexDirectory")), 
+					FSDirectory.open(spellIndexDir), 
 					new NGramDistance(2));
 			IndexWriterConfig conf = new IndexWriterConfig(Version.LUCENE_43, analyzer);
 			spellchecker.indexDictionary(
@@ -99,6 +98,12 @@ public class Suggest extends HttpServlet {
 		}
 		returnStr = "{\"suggest\":\"" + suggestStr + "\", \"time\":" + (et - st) + "}";
 		writer.print(returnStr);
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+			throws ServletException, IOException {
+		this.doGet(req, resp);
 	}
 
 }

@@ -35,9 +35,19 @@
 	</natures>
 	<linkedResources>
 		<link>
-			<name>lucene-4.3.0</name>
+			<name>lucene-analyzer</name>
 			<type>2</type>
-			<location>/home/kevin/source/lucene-4.3.0</location>
+			<location>/home/kevin/source/lucene/lucene-4.3.0-src/analysis/common/src/java</location>
+		</link>
+		<link>
+			<name>lucene-core</name>
+			<type>2</type>
+			<location>/home/kevin/source/lucene/lucene-4.3.0-src/core/src/java</location>
+		</link>
+		<link>
+			<name>lucene-suggest</name>
+			<type>2</type>
+			<location>/home/kevin/source/lucene/lucene-4.3.0-src/suggest/src/java</location>
 		</link>
 	</linkedResources>
 </projectDescription>

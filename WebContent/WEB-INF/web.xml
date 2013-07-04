@@ -17,4 +17,12 @@
     <servlet-name>suggest</servlet-name>
     <url-pattern>/</url-pattern>
   </servlet-mapping>
+  <servlet>
+    <servlet-name>suggest_index_manager</servlet-name>
+    <servlet-class>com.lexiscn.SuggestIndexManager</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>suggest_index_manager</servlet-name>
+    <url-pattern>/suggest/reindex</url-pattern>
+  </servlet-mapping>
 </web-app>
