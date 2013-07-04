@@ -23,6 +23,6 @@
   </servlet>
   <servlet-mapping>
     <servlet-name>suggest_index_manager</servlet-name>
-    <url-pattern>/suggest/reindex</url-pattern>
+    <url-pattern>/reindex</url-pattern>
   </servlet-mapping>
 </web-app>

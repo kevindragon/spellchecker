@@ -17,11 +17,8 @@ import org.apache.lucene.analysis.cjk.CJKAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -77,7 +74,13 @@ public class Suggest extends HttpServlet {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
 		try {
+			File indexFile = new File(webroot+"/data/index");
+			if (!indexFile.exists()) {
+				IndexManager im = new IndexManager();
+				im.reIndex(webroot+"/data/index", webroot+"/mydic.txt");
+			}
 			trIndexDir = FSDirectory.open(new File(webroot+"/data/index"));
 			ir = DirectoryReader.open(trIndexDir);
 			is = new IndexSearcher(ir);

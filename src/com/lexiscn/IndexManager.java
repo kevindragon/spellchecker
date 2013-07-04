@@ -30,16 +30,19 @@ public class IndexManager {
     private Directory indexDir = null;
     
     public boolean reIndex(String dir, String dicDir) throws IOException {
+    	boolean bool = false;
     	indexDir = FSDirectory.open(new File(dir));
 
     	ArrayList<String> lines = new ArrayList<String>();
 		String line = null;
+
 		BufferedReader reader = new BufferedReader(
 				new InputStreamReader (
 						new FileInputStream(dicDir), "UTF-8"));
 		while ((line = reader.readLine()) != null) {
 			lines.add(line);
 		}
+		reader.close();
 
         solr = new HttpSolrServer(urlString);
 
@@ -82,9 +85,12 @@ public class IndexManager {
 			}
 			indexWriter.commit();
 			indexWriter.close();
+			bool = true;
 		}
+		
+		indexDir.close();
 
-    	return true;
+    	return bool;
     }
 
 	private void index(String t1, String t2, float corr) {
