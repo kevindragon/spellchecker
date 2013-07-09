@@ -7,12 +7,17 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.cjk.CJKAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FloatField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.spell.NGramDistance;
+import org.apache.lucene.search.spell.PlainTextDictionary;
+import org.apache.lucene.search.spell.SpellChecker;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
@@ -29,7 +34,7 @@ public class IndexManager {
     private IndexWriter indexWriter = null;
     private Directory indexDir = null;
     
-    public boolean reIndex(String dir, String dicDir) throws IOException {
+    public boolean reIndexMI(String dir, String dicDir) throws IOException {
     	boolean bool = false;
     	indexDir = FSDirectory.open(new File(dir));
 
@@ -115,10 +120,48 @@ public class IndexManager {
 			qrsp = server.query(query);
 			docs = qrsp.getResults();
 			num = docs.getNumFound();
-		} catch (SolrServerException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return num;
+	}
+	
+	public boolean reIndexSpellchecker(String dictFile, String indexDir) 
+			throws IOException {
+		boolean bool = this.delDir(indexDir);
+		File spellIndexDir = new File(indexDir);
+		
+		Analyzer analyzer = new CJKAnalyzer(Version.LUCENE_43);
+		SpellChecker spellchecker = new SpellChecker(
+				FSDirectory.open(spellIndexDir), 
+				new NGramDistance(2));
+		IndexWriterConfig conf = new IndexWriterConfig(Version.LUCENE_43, analyzer);
+		spellchecker.indexDictionary(
+				new PlainTextDictionary(
+						new File(dictFile)), conf, false);
+		spellchecker.close();
+		
+		return bool;
+	}
+	
+	private boolean delDir(String dir) {
+		boolean bool = true;
+		File f = new File(dir);
+		if(f.exists() && f.isDirectory()){
+			if(f.listFiles().length == 0){
+				bool &= f.delete();  
+			} else {
+				File delFile[] = f.listFiles();
+				int i = f.listFiles().length;
+				for(int j=0;j<i;j++){
+					if(delFile[j].isDirectory()){
+						bool &= this.delDir(delFile[j].getAbsolutePath());
+					}
+					bool &= delFile[j].delete();
+				}
+			}
+		}
+		return bool;
 	}
 
 }

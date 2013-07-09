@@ -40,8 +40,17 @@ public class SuggestIndexManager extends HttpServlet {
 		IndexManager im = new IndexManager();
 		
 		String indexStatus = "index failed";
-		if (im.reIndex(webroot+"/data/index", webroot+"/mydic.txt")) {
-			indexStatus = "index success";
+		if (im.reIndexMI(webroot+"/data/index", webroot+"/mydic.txt")) {
+			indexStatus = "index muture information repostory success";
+		} else {
+			indexStatus = "index muture information repostory failed";
+		}
+		
+		if (im.reIndexSpellchecker(webroot+"/dictsrc.txt", 
+				webroot+"/spellIndexDirectory")) {
+			indexStatus += "\nindex spellchecker repostory success";
+		} else {
+			indexStatus += "\nindex spellchecker repostory failed";
 		}
 		
 		PrintWriter writer = response.getWriter();

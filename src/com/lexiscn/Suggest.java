@@ -60,17 +60,17 @@ public class Suggest extends HttpServlet {
 	 */
 	public void init(ServletConfig config) throws ServletException {
 		String webroot = config.getServletContext().getRealPath("/");
+		IndexManager im = new IndexManager();
 		try {
-			analyzer = new CJKAnalyzer(Version.LUCENE_43);
 			File spellIndexDir = new File(webroot+"/spellIndexDirectory");
-			spellIndexDir.delete();
+			if (!spellIndexDir.exists()) {
+				im.reIndexSpellchecker(webroot+"/dictsrc.txt", webroot+"/spellIndexDirectory");
+			}
+			
+			analyzer = new CJKAnalyzer(Version.LUCENE_43);
 			spellchecker = new SpellChecker(
 					FSDirectory.open(spellIndexDir), 
 					new NGramDistance(2));
-			IndexWriterConfig conf = new IndexWriterConfig(Version.LUCENE_43, analyzer);
-			spellchecker.indexDictionary(
-					new PlainTextDictionary(
-							new File(webroot+"/dictsrc.txt")), conf, false);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -78,8 +78,7 @@ public class Suggest extends HttpServlet {
 		try {
 			File indexFile = new File(webroot+"/data/index");
 			if (!indexFile.exists()) {
-				IndexManager im = new IndexManager();
-				im.reIndex(webroot+"/data/index", webroot+"/mydic.txt");
+				im.reIndexMI(webroot+"/data/index", webroot+"/mydic.txt");
 			}
 			trIndexDir = FSDirectory.open(new File(webroot+"/data/index"));
 			ir = DirectoryReader.open(trIndexDir);
@@ -118,12 +117,14 @@ public class Suggest extends HttpServlet {
 		
 		// get parameter q
 		String suggestStr = "";
-		String q = request.getParameter("q");
+		String q = request.getParameter("q").trim();
 		if (null != q && q.length() >= 2) {
-			q = q.length() <= 3 ? q+" " : q;
+			if (q.length() <= 3) {
+				q = q+"  ";
+			}
 
 			long spst = System.currentTimeMillis();
-			String[] suggestions = spellchecker.suggestSimilar(q, 20, 0.6f);
+			String[] suggestions = spellchecker.suggestSimilar(q, 20, 0.7f);
 			for (String word : suggestions) {
 				suggestStr += word.trim()+"|";
 			}
@@ -154,7 +155,14 @@ public class Suggest extends HttpServlet {
 	private ArrayList<String> getTermRelated(String term) throws IOException {
 		ArrayList<String> related = new ArrayList<String>();
 
-		if (ir.numDocs()>0) {
+		int docNum = 0;
+		try {
+			docNum = ir.numDocs();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		if (docNum > 0) {
 			Query query = new TermQuery(new Term("text", term));  
 			TopDocs hits = is.search(query, 20, 
 					new Sort(new SortField("corr", SortField.Type.FLOAT, true)));
