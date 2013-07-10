@@ -117,14 +117,18 @@ public class Suggest extends HttpServlet {
 		
 		// get parameter q
 		String suggestStr = "";
-		String q = request.getParameter("q").trim();
+		String q = request.getParameter("q");
+		if (null != q) q = q.trim();
+		String accuracyParam = request.getParameter("accuracy");
+		float accuracy = getAccuracy(accuracyParam, q);
+		
 		if (null != q && q.length() >= 2) {
 			if (q.length() <= 3) {
 				q = q+"  ";
 			}
 
 			long spst = System.currentTimeMillis();
-			String[] suggestions = spellchecker.suggestSimilar(q, 20, 0.7f);
+			String[] suggestions = spellchecker.suggestSimilar(q, 20, accuracy);
 			for (String word : suggestions) {
 				suggestStr += word.trim()+"|";
 			}
@@ -133,7 +137,8 @@ public class Suggest extends HttpServlet {
 			if (suggestStr.endsWith("|")) {
 				suggestStr = suggestStr.substring(0, suggestStr.length()-1);
 			}
-			String spellcheckerStr = "{\"suggest\":\"" + suggestStr + "\", \"time\":" + (spet - spst) + "}";
+			String spellcheckerStr = "{\"suggest\":\"" + suggestStr + "\", \"time\":" + 
+					(spet - spst) + ", \"accuracy\":" + accuracy + "}";
 			
 			ArrayList<String> text = getTermRelated(q.trim());
 			String termRelated = "";
@@ -188,4 +193,25 @@ public class Suggest extends HttpServlet {
 		this.doGet(req, resp);
 	}
 
+	private float getAccuracy(String accuracyParam, String q) {
+		float accuracy = 0.7f;
+		
+		if (null != accuracyParam) {
+			try {
+				Float flt = Float.valueOf(accuracyParam);
+				accuracy = flt.floatValue();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else if (null != q) {
+			if (q.length() > 4 && q.length() < 10) {
+				accuracy = 0.8f;
+			} else if (q.length() >= 10) {
+				accuracy = 0.87f;
+			}
+		}
+		
+		return accuracy;
+	}
+	
 }
