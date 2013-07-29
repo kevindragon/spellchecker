@@ -194,7 +194,7 @@ public class Suggest extends HttpServlet {
 	}
 
 	private float getAccuracy(String accuracyParam, String q) {
-		float accuracy = 0.7f;
+		float accuracy = 0.62f;
 		
 		if (null != accuracyParam) {
 			try {
@@ -204,10 +204,10 @@ public class Suggest extends HttpServlet {
 				e.printStackTrace();
 			}
 		} else if (null != q) {
-			if (q.length() > 4 && q.length() < 10) {
-				accuracy = 0.8f;
+			if (q.length() > 6 && q.length() < 10) {
+				accuracy = 0.7f;
 			} else if (q.length() >= 10) {
-				accuracy = 0.87f;
+				accuracy = 0.8f;
 			}
 		}
 		
