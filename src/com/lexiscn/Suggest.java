@@ -69,8 +69,7 @@ public class Suggest extends HttpServlet {
 			
 			analyzer = new CJKAnalyzer(Version.LUCENE_43);
 			spellchecker = new SpellChecker(
-					FSDirectory.open(spellIndexDir), 
-					new NGramDistance(2));
+					FSDirectory.open(spellIndexDir));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -204,7 +203,7 @@ public class Suggest extends HttpServlet {
 				e.printStackTrace();
 			}
 		} else if (null != q) {
-			if (q.length() > 6 && q.length() < 10) {
+			if (q.length() >=5 && q.length() < 10) {
 				accuracy = 0.7f;
 			} else if (q.length() >= 10) {
 				accuracy = 0.8f;
