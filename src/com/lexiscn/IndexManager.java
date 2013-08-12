@@ -84,7 +84,9 @@ public class IndexManager {
 					if (n12>0) {
 						corr = (float) ((Math.log10(total/tn1) * Math.log10(total/tn2) * n12) 
 										 / (tn1 + tn2 + n12));
-						index(t1, t2, corr);
+						if (corr > 0.01f) {
+							index(t1, t2, corr);
+						}
 					}
 				}
 			}
