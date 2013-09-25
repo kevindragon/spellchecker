@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="src" path="lucene-suggest"/>
-	<classpathentry kind="src" path="lucene-analyzer"/>
-	<classpathentry kind="src" path="lucene-core"/>
 	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.web.container"/>
 	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.module.container"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/lucene-analyzers-common-4.3.0.jar"/>
@@ -16,7 +13,6 @@
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/commons-io-2.1.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/jcl-over-slf4j-1.6.6.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/jul-to-slf4j-1.6.6.jar"/>
-	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/log4j-1.2.16.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/noggit-0.5.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/slf4j-api-1.6.6.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/slf4j-log4j12-1.6.6.jar"/>
@@ -31,5 +27,8 @@
 			<attribute name="owner.project.facets" value="java"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/IKAnalyzer_2012FF_hf1_lexiscn.jar"/>
+	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/commons-lang3-3.1.jar"/>
+	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/log4j-1.2.16.jar"/>
 	<classpathentry kind="output" path="build/classes"/>
 </classpath>
