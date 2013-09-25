@@ -21,7 +21,7 @@ public class LuceneQuery {
 	private static SolrQuery query;
 	private static LuceneQuery instance = null;
 	
-	private LuceneQuery() {
+	public LuceneQuery() {
 		solr = new HttpSolrServer(urlString);
 		query = new SolrQuery();
 		query.setStart(0).setRows(0);
@@ -52,7 +52,7 @@ public class LuceneQuery {
 		QueryResponse qrsp = null;
 		SolrDocumentList docs = null;
 		long num = 0;
-		synchronized (query) {
+//		synchronized (query) {
 			query.setQuery("text:\"" + word.replace("\"", "") + "\"");
 			try {
 				qrsp = solr.query(query);
@@ -61,7 +61,7 @@ public class LuceneQuery {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-		}
+//		}
 		return num;
 	}
 

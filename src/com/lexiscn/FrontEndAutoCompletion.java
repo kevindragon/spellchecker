@@ -30,27 +30,15 @@ public class FrontEndAutoCompletion {
 	private IKSegmenter segmenter;
 	
 	/**
-	 *  存储所有候选词，包括前面缺词，后面缺词，前后都缺的
-	 */
-	private LinkedList<String> allCandidates = null;
-	
-	/**
-	 *  存储每个候选词的概率
-	 */
-	private LinkedList<Long> probability = null;
-	
-	/**
 	 * lucene server的查询对象
 	 */
 	private LuceneQuery query = null;
 	
 	public FrontEndAutoCompletion(ServletConfig config) {
 		String webroot = config.getServletContext().getRealPath("/");
-		allCandidates = new LinkedList<String>();
-		probability = new LinkedList<Long>();
 		lexicon = Lexicon.loadLexicon(webroot+"/phrase.dic");
 		segmenter = new IKSegmenter(new StringReader(""), true);
-		query = LuceneQuery.getInstance();
+//		query = LuceneQuery.getInstance();
 	}
 
 	/**
@@ -155,29 +143,20 @@ public class FrontEndAutoCompletion {
 	 * @param word
 	 * @param prob
 	 */
-	public void addCandidate (String word, long prob) {
+	public void addCandidate (LinkedList<String> candidates, LinkedList<Long> probability, 
+			String word, long prob) {
 		int index = 0;
-		for (int i=0; i<allCandidates.size(); i++) {
+		for (int i=0; i<candidates.size(); i++) {
 			if (probability.get(i) < prob) {
 				index = i;
 				break;
 			}
-			if (i == allCandidates.size()-1) {
+			if (i == candidates.size()-1) {
 				index = i+1;
 			}
 		}
 		probability.add(index, prob);
-		allCandidates.add(index, word);
-	}
-
-	/**
-	 * 返回候选词
-	 * @return String[]
-	 */
-	public String[] getCandidate() {
-		String[] ret = new String[allCandidates.size()];
-		allCandidates.toArray(ret);
-		return ret;
+		candidates.add(index, word);
 	}
 	
 	/**
@@ -186,7 +165,13 @@ public class FrontEndAutoCompletion {
 	 * @return
 	 */
 	public String[] suggestAutoCompletion(String word) {
-System.out.println("word: " + word);
+
+		// 存储所有候选词，包括前面缺词，后面缺词，前后都缺的。每一个请求都需要创建一个这个对象
+		LinkedList<String> candidates = new LinkedList<String>();
+		// 存储每个候选词的概率
+		LinkedList<Long> probability = new LinkedList<Long>();
+		query = new LuceneQuery();
+		
 		String[] seg = seg(word);
 
 		// 前面缺词，当分词后开头是一个字的时候才去查找候选词
@@ -206,7 +191,7 @@ System.out.println("word: " + word);
 					frontWord = StringUtils.join(frontCandidates[i], "");
 					frontProbability[i] = query.getTotalHits(frontWord);
 					if (frontProbability[i] > 0) {
-						addCandidate(frontWord, frontProbability[i]);
+						addCandidate(candidates, probability, frontWord, frontProbability[i]);
 					}
 				}
 			}
@@ -229,7 +214,7 @@ System.out.println("word: " + word);
 				endWord = StringUtils.join(endCandidates[i], "");
 				endProbability[i] = query.getTotalHits(endWord);
 				if (endProbability[i] > 0) {
-					addCandidate(endWord, endProbability[i]);
+					addCandidate(candidates, probability, endWord, endProbability[i]);
 				}
 				
 			}
@@ -253,14 +238,14 @@ System.out.println("word: " + word);
 					frontEndWord = StringUtils.join(frontEndCandidates[i], "");
 					long frontEndProbability = query.getTotalHits(frontEndWord);
 					if (frontEndProbability > 0) {
-						addCandidate(frontEndWord, frontEndProbability);
+						addCandidate(candidates, probability, frontEndWord, frontEndProbability);
 					}
 				}
 			}
 		}
 
-		String[] allCandidates = getCandidate();
-System.out.println("all candidates: " + StringUtils.join(allCandidates, ", "));
+		String[] allCandidates = new String[candidates.size()];
+		candidates.toArray(allCandidates);
 		// 去掉那些补全后分词仍然有一个字的字符串
 		ArrayList<String> list = new ArrayList<String>();
 		for (int i=0; i<allCandidates.length; i++) {
@@ -268,8 +253,11 @@ System.out.println("all candidates: " + StringUtils.join(allCandidates, ", "));
 				list.add(allCandidates[i]);
 			}
 		}
-		String[] ret = new String[list.size()];
-		list.toArray(ret);
+		int maxNum = Math.min(5, list.size());
+		String[] ret = new String[maxNum];
+		for (int i=0; i<maxNum; i++) {
+			ret[i] = list.get(i);
+		}
 
 		return ret;
 	}
