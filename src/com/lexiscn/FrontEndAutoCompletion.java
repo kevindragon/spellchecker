@@ -190,7 +190,7 @@ public class FrontEndAutoCompletion {
 					}
 					frontWord = StringUtils.join(frontCandidates[i], "");
 					frontProbability[i] = query.getTotalHits(frontWord);
-					if (frontProbability[i] > 0) {
+					if (frontProbability[i] > 1) {
 						addCandidate(candidates, probability, frontWord, frontProbability[i]);
 					}
 				}
@@ -213,7 +213,7 @@ public class FrontEndAutoCompletion {
 				endCandidates[i][j] = candidateEnd[i];
 				endWord = StringUtils.join(endCandidates[i], "");
 				endProbability[i] = query.getTotalHits(endWord);
-				if (endProbability[i] > 0) {
+				if (endProbability[i] > 1) {
 					addCandidate(candidates, probability, endWord, endProbability[i]);
 				}
 				
@@ -237,7 +237,7 @@ public class FrontEndAutoCompletion {
 					frontEndCandidates[i][k] = endCandidates[j][endCandidates[j].length-1];
 					frontEndWord = StringUtils.join(frontEndCandidates[i], "");
 					long frontEndProbability = query.getTotalHits(frontEndWord);
-					if (frontEndProbability > 0) {
+					if (frontEndProbability > 1) {
 						addCandidate(candidates, probability, frontEndWord, frontEndProbability);
 					}
 				}
