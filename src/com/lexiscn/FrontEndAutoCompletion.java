@@ -1,9 +1,11 @@
 package com.lexiscn;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.Properties;
 
 import javax.servlet.ServletConfig;
 
@@ -34,10 +36,26 @@ public class FrontEndAutoCompletion {
 	 */
 	private LuceneQuery query = null;
 	
+	private ServletConfig servletConfig = null;
+	
+	private Properties prop;
+	
 	public FrontEndAutoCompletion(ServletConfig config) {
-		String webroot = config.getServletContext().getRealPath("/");
-		lexicon = Lexicon.loadLexicon(webroot+"/phrase.dic");
+		servletConfig = config;
+		String webroot = servletConfig.getServletContext().getRealPath("/");
+		// 加载配置文件
+		InputStream inputStream = this.getClass().getClassLoader()
+				.getResourceAsStream(webroot+"config.properties");
+		prop = new Properties();
+		try {
+			prop.load(inputStream);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		
+		lexicon = Lexicon.loadLexicon(prop.getProperty("phrase.dic"));
 		segmenter = new IKSegmenter(new StringReader(""), true);
+		
 //		query = LuceneQuery.getInstance();
 	}
 
@@ -46,7 +64,7 @@ public class FrontEndAutoCompletion {
 	 * @param word
 	 * @return String[]
 	 */
-	public String[] seg(String word) {
+	public synchronized String[] seg(String word) {
 		String[] ret = null;
 
 		ArrayList<String> terms = new ArrayList<String>();
@@ -170,7 +188,8 @@ public class FrontEndAutoCompletion {
 		LinkedList<String> candidates = new LinkedList<String>();
 		// 存储每个候选词的概率
 		LinkedList<Long> probability = new LinkedList<Long>();
-		query = new LuceneQuery();
+		query = new LuceneQuery(prop.getProperty("luceneserver.host") + 
+				prop.getProperty("luceneserver.path"));
 		
 		String[] seg = seg(word);
 

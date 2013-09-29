@@ -16,12 +16,13 @@ import org.apache.solr.common.SolrDocumentList;
  */
 public class LuceneQuery {
 
-	private static String urlString = "http://10.123.4.210:8080/solr/termrelated/";
+	private static String urlString;
 	private static HttpSolrServer solr;
 	private static SolrQuery query;
 	private static LuceneQuery instance = null;
 	
-	public LuceneQuery() {
+	public LuceneQuery(String luceneServer) {
+		urlString = luceneServer;
 		solr = new HttpSolrServer(urlString);
 		query = new SolrQuery();
 		query.setStart(0).setRows(0);
@@ -36,9 +37,9 @@ public class LuceneQuery {
 	 * 单例模式的外部接口
 	 * @return
 	 */
-	public static LuceneQuery getInstance() {
+	public static LuceneQuery getInstance(String luceneServer) {
 		if (instance == null) {
-			instance = new LuceneQuery();
+			instance = new LuceneQuery(luceneServer);
 		}
 		return instance;
 	}
