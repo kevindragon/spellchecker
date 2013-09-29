@@ -58,6 +58,9 @@ public class Suggest extends HttpServlet {
 	 */
 	public void init(ServletConfig config) throws ServletException {
 		String webroot = config.getServletContext().getRealPath("/");
+		// 初始化前后缺词的补全引擎
+		ac = new FrontEndAutoCompletion(config);
+		
 		IndexManager im = new IndexManager();
 		// 初始化lucene自带的spellchecker
 		try {
@@ -84,8 +87,6 @@ public class Suggest extends HttpServlet {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		// 初始化前后缺词的补全引擎
-		ac = new FrontEndAutoCompletion(config);
 	}
 
 	/**

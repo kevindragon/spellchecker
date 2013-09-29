@@ -1,6 +1,5 @@
 package com.lexiscn;
 
-import java.io.File;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -38,10 +37,7 @@ public class Lexicon {
 			return lexicon;
 		}
 		Trie[] lexicon = {new Trie(), new Trie()};
-		File file = new File(filename);
-		if (!file.exists()) {
-			return lexicon;
-		}
+
 		BufferedReader br = null;
 		try {
 			br = new BufferedReader(new FileReader(filename));

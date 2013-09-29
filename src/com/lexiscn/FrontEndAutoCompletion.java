@@ -1,7 +1,7 @@
 package com.lexiscn;
 
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -43,20 +43,17 @@ public class FrontEndAutoCompletion {
 	public FrontEndAutoCompletion(ServletConfig config) {
 		servletConfig = config;
 		String webroot = servletConfig.getServletContext().getRealPath("/");
-		// 加载配置文件
-		InputStream inputStream = this.getClass().getClassLoader()
-				.getResourceAsStream(webroot+"config.properties");
-		prop = new Properties();
 		try {
-			prop.load(inputStream);
+		// 加载配置文件
+		FileInputStream fis = new FileInputStream(webroot+"config.properties");
+		prop = new Properties();
+			prop.load(fis);
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
 		
-		lexicon = Lexicon.loadLexicon(prop.getProperty("phrase.dic"));
+		lexicon = Lexicon.loadLexicon(webroot+prop.getProperty("phrase.dic"));
 		segmenter = new IKSegmenter(new StringReader(""), true);
-		
-//		query = LuceneQuery.getInstance();
 	}
 
 	/**
@@ -190,7 +187,6 @@ public class FrontEndAutoCompletion {
 		LinkedList<Long> probability = new LinkedList<Long>();
 		query = new LuceneQuery(prop.getProperty("luceneserver.host") + 
 				prop.getProperty("luceneserver.path"));
-		
 		String[] seg = seg(word);
 
 		// 前面缺词，当分词后开头是一个字的时候才去查找候选词
