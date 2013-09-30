@@ -3,13 +3,26 @@ package com.lexiscn;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Properties;
 
 import javax.servlet.ServletConfig;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.ParseException;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.wltea.analyzer.core.IKSegmenter;
 import org.wltea.analyzer.core.Lexeme;
 
@@ -191,22 +204,35 @@ public class FrontEndAutoCompletion {
 
 		// 前面缺词，当分词后开头是一个字的时候才去查找候选词
 		String[][] frontCandidates = null;
+		String[] frontWord = null;
 		long[] frontProbability = null;
 		if (seg[0].length() == 1) {
 			String[] candidatesStart = getStartSuggestions(seg[0]);
 			if (candidatesStart.length > 0) {
 				frontCandidates = new String[candidatesStart.length][seg.length];
 				frontProbability = new long[candidatesStart.length];
-				String frontWord;
+				frontWord = new String[candidatesStart.length];
 				for (int i=0; i<candidatesStart.length; i++) {
 					frontCandidates[i][0] = candidatesStart[i];
 					for (int j=1; j<seg.length; j++) {
 						frontCandidates[i][j] = seg[j];
 					}
-					frontWord = StringUtils.join(frontCandidates[i], "");
-					frontProbability[i] = query.getTotalHits(frontWord);
-					if (frontProbability[i] > 1) {
-						addCandidate(candidates, probability, frontWord, frontProbability[i]);
+					frontWord[i] = StringUtils.join(frontCandidates[i], "");
+//					frontProbability[i] = query.getTotalHits(frontWord[i]);
+//					if (frontProbability[i] > 1) {
+//						addCandidate(candidates, probability, frontWord[i], frontProbability[i]);
+//					}
+				}
+				Candidate[] candStarts = getGoResponse(frontWord);
+				for (int i=0; i<candidatesStart.length; i++) {
+					for (int j=0; j<candStarts.length; j++) {
+						if (candStarts[j].word.equals(frontWord[i])) {
+							frontProbability[i] = candStarts[j].prob;
+							if (candStarts[j].prob > 1) {
+								addCandidate(candidates, probability, frontWord[i], candStarts[j].prob);
+							}
+							break;
+						}
 					}
 				}
 			}
@@ -214,32 +240,45 @@ public class FrontEndAutoCompletion {
 
 		// 后面缺词
 		String[][] endCandidates = null;
+		String[] endWord = null;
 		long[] endProbability = null;
 		String[] candidateEnd = getEndSuggestions(seg[seg.length-1]);
 		if (candidateEnd.length > 0) {
 			endCandidates = new String[candidateEnd.length][seg.length];
 			endProbability = new long[candidateEnd.length];
-			String endWord;
+			endWord = new String[candidateEnd.length];
 			for (int i=0; i<candidateEnd.length; i++) {
 				int j = 0;
 				for (; j<seg.length-1; j++) {
 					endCandidates[i][j] = seg[j];
 				}
 				endCandidates[i][j] = candidateEnd[i];
-				endWord = StringUtils.join(endCandidates[i], "");
-				endProbability[i] = query.getTotalHits(endWord);
-				if (endProbability[i] > 1) {
-					addCandidate(candidates, probability, endWord, endProbability[i]);
+				endWord[i] = StringUtils.join(endCandidates[i], "");
+//				endProbability[i] = query.getTotalHits(endWord[i]);
+//				if (endProbability[i] > 1) {
+//					addCandidate(candidates, probability, endWord[i], endProbability[i]);
+//				}
+			}
+			Candidate[] candEnds = getGoResponse(endWord);
+			for (int i=0; i<candidateEnd.length; i++) {
+				for (int j=0; j<candEnds.length; j++) {
+					if (candEnds[j].word.equals(endWord[i])) {
+						endProbability[i] = candEnds[j].prob;
+						if (candEnds[j].prob > 1) {
+							addCandidate(candidates, probability, endWord[i], candEnds[j].prob);
+						}
+						break;
+					}
 				}
-				
 			}
 		}
 
 		// 前后两端都缺词
 		String[][] frontEndCandidates = null;
+		ArrayList<String> fronEndWordal = new ArrayList<String>();
+		String[] frontEndWords = null;
 		if (frontCandidates != null && endCandidates != null) {
 			frontEndCandidates = new String[frontCandidates.length*endCandidates.length][seg.length];
-			String frontEndWord = null;
 			for (int i=0; i<frontCandidates.length; i++) {
 				if (frontProbability[i] <= 0) {
 					continue;
@@ -250,15 +289,64 @@ public class FrontEndAutoCompletion {
 						frontEndCandidates[i][k] = frontCandidates[i][k];
 					}
 					frontEndCandidates[i][k] = endCandidates[j][endCandidates[j].length-1];
-					frontEndWord = StringUtils.join(frontEndCandidates[i], "");
-					long frontEndProbability = query.getTotalHits(frontEndWord);
-					if (frontEndProbability > 1) {
-						addCandidate(candidates, probability, frontEndWord, frontEndProbability);
+//					frontEndWord = StringUtils.join(frontEndCandidates[i], "");
+					fronEndWordal.add(StringUtils.join(frontEndCandidates[i], ""));
+//					long frontEndProbability = query.getTotalHits(frontEndWord);
+//					if (frontEndProbability > 1) {
+//						addCandidate(candidates, probability, frontEndWord, frontEndProbability);
+//					}
+				}
+			}
+			frontEndWords = new String[fronEndWordal.size()];
+			fronEndWordal.toArray(frontEndWords);
+			
+			Candidate[] candFrontEnds = getGoResponse(frontEndWords);
+			for (int i=0; i<frontEndWords.length; i++) {
+				for (int j=0; j<candFrontEnds.length; j++) {
+					if (candFrontEnds[j].word.equals(frontEndWords[i])) {
+						if (candFrontEnds[j].prob > 1) {
+							addCandidate(candidates, probability, frontEndWords[i], candFrontEnds[j].prob);
+						}
+						break;
 					}
 				}
 			}
 		}
 
+//		ArrayList<String> allGoCandList = new ArrayList<String>();
+//		
+//		// 前面缺词，当分词后开头是一个字的时候才去查找候选词
+//		String[] candidatesStart = null;
+//		if (seg[0].length() == 1) {
+//			candidatesStart = getStartSuggestions(seg[0]);
+//			for (int i=0; i<candidatesStart.length; i++) {
+//				allGoCandList.add(candidatesStart[i]+word.substring(seg[0].length()));
+//			}
+//		}
+//
+//		// 后面缺词
+//		String[] candidatesEnd = getEndSuggestions(seg[seg.length-1]);
+//		if (candidatesEnd.length > 0) {
+//			for (int i=0; i<candidatesEnd.length; i++) {
+//				allGoCandList.add(word.substring(0, word.length()-seg[seg.length-1].length()+1) + candidatesEnd[i]);
+//			}
+//		}
+//		
+//		// 前后都缺词
+//		if (null != candidatesStart && null != candidatesEnd) {
+//			for (int i=0; i<candidatesStart.length; i++) {
+//				for (int j=0; j<candidatesEnd.length; j++) {
+//					allGoCandList.add(candidatesStart[i] + 
+//							word.substring(seg[0].length(), word.length()-seg[seg.length-1].length()+1) + 
+//							candidatesEnd[j]);
+//				}
+//			}
+//		}
+//
+//		String[] allGoCand = new String[allGoCandList.size()];
+//		allGoCandList.toArray(allGoCand);
+	
+		
 		String[] allCandidates = new String[candidates.size()];
 		candidates.toArray(allCandidates);
 		// 去掉那些补全后分词仍然有一个字的字符串
@@ -275,5 +363,62 @@ public class FrontEndAutoCompletion {
 		}
 
 		return ret;
+	}
+	
+	protected Candidate[] getGoResponse(String[] allGoCand) {
+
+		DefaultHttpClient httpClient = new DefaultHttpClient();
+		//建立HttpPost对象
+		HttpPost post = new HttpPost(prop.getProperty("goserver"));
+		List<NameValuePair> params = new ArrayList<NameValuePair>();
+		for (int i=0; i<allGoCand.length; i++) {
+			//建立一个NameValuePair数组，用于存储欲传送的参数
+			params.add(new BasicNameValuePair("candidate", allGoCand[i]));
+		}
+		try {
+			post.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+
+		HttpResponse response = null;
+		try {
+			response = httpClient.execute(post);
+		} catch (ClientProtocolException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		String result = null;
+		if(response.getStatusLine().getStatusCode() == 200){
+			try {
+				result = EntityUtils.toString(response.getEntity());
+			} catch (ParseException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		JSONObject jsonobj = new JSONObject(result);
+		JSONArray words = jsonobj.getJSONArray("response");
+		
+		Candidate[] cand = new Candidate[words.length()];
+		for (int i=0; i<words.length(); i++) {
+			JSONObject e = words.getJSONObject(i);
+			cand[i] = new Candidate(e.getString("Word"), e.getInt("Prob"));
+		}
+		
+		return cand;
+	}
+	
+}
+
+class Candidate {
+	public String word;
+	public int prob;
+	public Candidate(String word, int prob) {
+		this.word = word;
+		this.prob = prob;
 	}
 }
