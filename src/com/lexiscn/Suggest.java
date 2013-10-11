@@ -128,24 +128,26 @@ public class Suggest extends HttpServlet {
 			}
 
 			long spst = System.currentTimeMillis();
-			String[] suggestions = spellchecker.suggestSimilar(q, 20, accuracy);
+			String[] suggestions = stringArrayTrim(spellchecker.suggestSimilar(q, 20, accuracy));
 			long spet = System.currentTimeMillis();
-			String spellcheckerStr = "{\"suggest\":\"" + StringUtils.join(suggestions, "|") + "\", \"time\":" + 
-					(spet - spst) + ", \"accuracy\":" + accuracy + "}";
+			String cands1 = suggestions.length == 0 ? "[]" : "[\"" + StringUtils.join(suggestions, "\",\"") + "\"]";
+			String spellcheckerStr = "{\"suggest\":" + cands1 + ", \"time\":" + (spet - spst) + 
+					", \"accuracy\":" + accuracy + "}";
 			
 			ArrayList<String> text = getTermRelated(q.trim());
 			String[] termRelated = new String[text.size()];
 			text.toArray(termRelated);
 			long tret = System.currentTimeMillis();
-			String trStr = "{\"suggest\":\"" + StringUtils.join(termRelated, "|") + "\", \"time\":" + (tret - spet) + "}";
+			String cands2 = termRelated.length == 0 ? "[]" : "[\"" + StringUtils.join(termRelated, "\",\"") + "\"]";
+			String trStr = "{\"suggest\":" + cands2 + ", \"time\":" + (tret - spet) + "}";
 			
 			long acStart = System.currentTimeMillis();
 			String[] autoCompletionWords = ac.suggestAutoCompletion(q.trim());
 			long acEnd = System.currentTimeMillis();
-			String acStr = "{\"suggest\":\"" + StringUtils.join(autoCompletionWords, "|") + 
-					"\", \"time\":" + (acEnd - acStart) + "}";
+			String cands3 = autoCompletionWords.length == 0 ? "[]" : "[\"" + StringUtils.join(autoCompletionWords, "\",\"") + "\"]";
+			String acStr = "{\"suggest\":" + cands3 + ", \"time\":" + (acEnd - acStart) + "}";
 			
-			returnStr = "[" + spellcheckerStr + ", " + trStr + ", " + acStr + "]";
+			returnStr = "[" + spellcheckerStr + ", " + acStr + ", " + trStr + "]";
 		}
 		
 		writer.print(returnStr);
@@ -208,4 +210,10 @@ public class Suggest extends HttpServlet {
 		return accuracy;
 	}
 	
+	private String[] stringArrayTrim(String[] array) {
+		for (int i=0; i<array.length; i++) {
+			array[i] = array[i].trim();
+		}
+		return array;
+	}
 }

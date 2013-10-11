@@ -36,10 +36,25 @@ public class FrontEndAutoCompletion {
 	 */
 	private LuceneQuery query = null;
 	
+	/**
+	 * 保存从外部传入的servlet config
+	 */
 	private ServletConfig servletConfig = null;
 	
+	/**
+	 * 程序的配置
+	 */
 	private Properties prop;
 	
+	/**
+	 * 一个词在语料库中至少出来的次数
+	 */
+	private int minOccurrence = 1;
+	
+	/**
+	 * 构造函数，初始化配置、词典、分词器
+	 * @param config
+	 */
 	public FrontEndAutoCompletion(ServletConfig config) {
 		servletConfig = config;
 		String webroot = servletConfig.getServletContext().getRealPath("/");
@@ -205,7 +220,7 @@ public class FrontEndAutoCompletion {
 					}
 					frontWord = StringUtils.join(frontCandidates[i], "");
 					frontProbability[i] = query.getTotalHits(frontWord);
-					if (frontProbability[i] > 1) {
+					if (frontProbability[i] >= minOccurrence) {
 						addCandidate(candidates, probability, frontWord, frontProbability[i]);
 					}
 				}
@@ -228,7 +243,7 @@ public class FrontEndAutoCompletion {
 				endCandidates[i][j] = candidateEnd[i];
 				endWord = StringUtils.join(endCandidates[i], "");
 				endProbability[i] = query.getTotalHits(endWord);
-				if (endProbability[i] > 1) {
+				if (endProbability[i] >= minOccurrence) {
 					addCandidate(candidates, probability, endWord, endProbability[i]);
 				}
 				
@@ -252,7 +267,7 @@ public class FrontEndAutoCompletion {
 					frontEndCandidates[i][k] = endCandidates[j][endCandidates[j].length-1];
 					frontEndWord = StringUtils.join(frontEndCandidates[i], "");
 					long frontEndProbability = query.getTotalHits(frontEndWord);
-					if (frontEndProbability > 1) {
+					if (frontEndProbability >= minOccurrence) {
 						addCandidate(candidates, probability, frontEndWord, frontEndProbability);
 					}
 				}
@@ -268,7 +283,7 @@ public class FrontEndAutoCompletion {
 				list.add(allCandidates[i]);
 			}
 		}
-		int maxNum = Math.min(5, list.size());
+		int maxNum = Math.min(10, list.size());
 		String[] ret = new String[maxNum];
 		for (int i=0; i<maxNum; i++) {
 			ret[i] = list.get(i);

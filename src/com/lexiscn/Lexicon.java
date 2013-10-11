@@ -43,7 +43,7 @@ public class Lexicon {
 			br = new BufferedReader(new FileReader(filename));
 			String line;
 			while ((line = br.readLine()) != null) {
-				if (line.length() <= 1 || line.length() > 3) {
+				if (line.length() <= 1 || line.length() > 5) {
 					continue;
 				}
 				StringBuffer sb = new StringBuffer(line);
