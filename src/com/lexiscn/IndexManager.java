@@ -107,7 +107,6 @@ public class IndexManager {
 		try {
 			indexWriter.addDocument(doc);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

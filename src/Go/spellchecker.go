@@ -34,31 +34,31 @@ type Candidate struct {
 }
 
 func main() {
-
 	http.HandleFunc("/", func(writer http.ResponseWriter, r *http.Request) {
 		st := time.Now().Nanosecond()
-		jsonStr := ""
+		jsonStr := "[]"
 		if r.Method == "POST" {
 			r.ParseForm()
 			if candidates, found := r.Form["candidate"]; found && len(candidates) > 0 {
-				fmt.Println(candidates)
 				results := GetCandidates(candidates)
 
 				bjson, _ := json.Marshal(results)
 				jsonStr = string(bjson)
 			}
 		}
+
 		et := time.Now().Nanosecond()
 		ctime := float64(et-st) / 1000000.0
 		ret := fmt.Sprintf("{\"response\":%s, \"time\":%f}", jsonStr, ctime)
 		fmt.Fprint(writer, ret)
+		fmt.Println(ret)
 	})
+	fmt.Println("http listene :9090")
 	if err := http.ListenAndServe(":9090", nil); err != nil {
 		log.Fatal("failed to start server ", err)
-	} else {
-		fmt.Println("http listened :9090")
 	}
 }
+
 func GetCandidates(candidates []string) []Candidate {
 	workers := runtime.NumCPU()
 	jobs := make(chan string, workers)

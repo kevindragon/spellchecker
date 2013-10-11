@@ -45,14 +45,24 @@ public class FrontEndAutoCompletion {
 	private IKSegmenter segmenter;
 	
 	/**
-	 * lucene server的查询对象
+	 * 保存从外部传入的servlet config
 	 */
-	private LuceneQuery query = null;
-	
 	private ServletConfig servletConfig = null;
 	
+	/**
+	 * 程序的配置
+	 */
 	private Properties prop;
 	
+	/**
+	 * 一个词在语料库中至少出来的次数
+	 */
+	private int minOccurrence = 1;
+	
+	/**
+	 * 构造函数，初始化配置、词典、分词器
+	 * @param config
+	 */
 	public FrontEndAutoCompletion(ServletConfig config) {
 		servletConfig = config;
 		String webroot = servletConfig.getServletContext().getRealPath("/");
@@ -198,8 +208,6 @@ public class FrontEndAutoCompletion {
 		LinkedList<String> candidates = new LinkedList<String>();
 		// 存储每个候选词的概率
 		LinkedList<Long> probability = new LinkedList<Long>();
-		query = new LuceneQuery(prop.getProperty("luceneserver.host") + 
-				prop.getProperty("luceneserver.path"));
 		String[] seg = seg(word);
 
 		// 前面缺词，当分词后开头是一个字的时候才去查找候选词
@@ -228,7 +236,7 @@ public class FrontEndAutoCompletion {
 					for (int j=0; j<candStarts.length; j++) {
 						if (candStarts[j].word.equals(frontWord[i])) {
 							frontProbability[i] = candStarts[j].prob;
-							if (candStarts[j].prob > 1) {
+							if (candStarts[j].prob >= minOccurrence) {
 								addCandidate(candidates, probability, frontWord[i], candStarts[j].prob);
 							}
 							break;
@@ -264,7 +272,7 @@ public class FrontEndAutoCompletion {
 				for (int j=0; j<candEnds.length; j++) {
 					if (candEnds[j].word.equals(endWord[i])) {
 						endProbability[i] = candEnds[j].prob;
-						if (candEnds[j].prob > 1) {
+						if (candEnds[j].prob >= minOccurrence) {
 							addCandidate(candidates, probability, endWord[i], candEnds[j].prob);
 						}
 						break;
@@ -304,7 +312,7 @@ public class FrontEndAutoCompletion {
 			for (int i=0; i<frontEndWords.length; i++) {
 				for (int j=0; j<candFrontEnds.length; j++) {
 					if (candFrontEnds[j].word.equals(frontEndWords[i])) {
-						if (candFrontEnds[j].prob > 1) {
+						if (candFrontEnds[j].prob >= minOccurrence) {
 							addCandidate(candidates, probability, frontEndWords[i], candFrontEnds[j].prob);
 						}
 						break;
@@ -356,7 +364,7 @@ public class FrontEndAutoCompletion {
 				list.add(allCandidates[i]);
 			}
 		}
-		int maxNum = Math.min(5, list.size());
+		int maxNum = Math.min(10, list.size());
 		String[] ret = new String[maxNum];
 		for (int i=0; i<maxNum; i++) {
 			ret[i] = list.get(i);
