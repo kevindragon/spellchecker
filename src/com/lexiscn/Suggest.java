@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.cjk.CJKAnalyzer;
 import org.apache.lucene.document.Document;
@@ -42,7 +43,6 @@ public class Suggest extends HttpServlet {
      */
     public Suggest() {
         super();
-        // TODO Auto-generated constructor stub
     }
 
     SpellChecker spellchecker = null;
@@ -51,13 +51,18 @@ public class Suggest extends HttpServlet {
     Directory trIndexDir = null;
 	IndexReader ir = null;
 	IndexSearcher is = null;
+	FrontEndAutoCompletion ac = null;
     
 	/**
 	 * @see Servlet#init(ServletConfig)
 	 */
 	public void init(ServletConfig config) throws ServletException {
 		String webroot = config.getServletContext().getRealPath("/");
+		// 初始化前后缺词的补全引擎
+		ac = new FrontEndAutoCompletion(config);
+		
 		IndexManager im = new IndexManager();
+		// 初始化lucene自带的spellchecker
 		try {
 			File spellIndexDir = new File(webroot+"/spellIndexDirectory");
 			if (!spellIndexDir.exists()) {
@@ -70,7 +75,7 @@ public class Suggest extends HttpServlet {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+		// 初始化使用互信息计算的词典跟索引
 		try {
 			File indexFile = new File(webroot+"/data/index");
 			if (!indexFile.exists()) {
@@ -112,7 +117,6 @@ public class Suggest extends HttpServlet {
 		String returnStr = "";
 		
 		// get parameter q
-		String suggestStr = "";
 		String q = request.getParameter("q");
 		if (null != q) q = q.trim();
 		String accuracyParam = request.getParameter("accuracy");
@@ -124,30 +128,26 @@ public class Suggest extends HttpServlet {
 			}
 
 			long spst = System.currentTimeMillis();
-			String[] suggestions = spellchecker.suggestSimilar(q, 20, accuracy);
-			for (String word : suggestions) {
-				suggestStr += word.trim()+"|";
-			}
+			String[] suggestions = stringArrayTrim(spellchecker.suggestSimilar(q, 20, accuracy));
 			long spet = System.currentTimeMillis();
-			
-			if (suggestStr.endsWith("|")) {
-				suggestStr = suggestStr.substring(0, suggestStr.length()-1);
-			}
-			String spellcheckerStr = "{\"suggest\":\"" + suggestStr + "\", \"time\":" + 
-					(spet - spst) + ", \"accuracy\":" + accuracy + "}";
+			String cands1 = suggestions.length == 0 ? "[]" : "[\"" + StringUtils.join(suggestions, "\",\"") + "\"]";
+			String spellcheckerStr = "{\"suggest\":" + cands1 + ", \"time\":" + (spet - spst) + 
+					", \"accuracy\":" + accuracy + "}";
 			
 			ArrayList<String> text = getTermRelated(q.trim());
-			String termRelated = "";
+			String[] termRelated = new String[text.size()];
+			text.toArray(termRelated);
 			long tret = System.currentTimeMillis();
-			for (int i=0; i<text.size(); i++) {
-				termRelated += text.get(i)+"|";
-			}
-			if (termRelated.endsWith("|")) {
-				termRelated = termRelated.substring(0, termRelated.length()-1);
-			}
-			String trStr = "{\"suggest\":\"" + termRelated + "\", \"time\":" + (tret - spet) + "}";
+			String cands2 = termRelated.length == 0 ? "[]" : "[\"" + StringUtils.join(termRelated, "\",\"") + "\"]";
+			String trStr = "{\"suggest\":" + cands2 + ", \"time\":" + (tret - spet) + "}";
 			
-			returnStr = "[" + spellcheckerStr + ", " + trStr + "]";
+			long acStart = System.currentTimeMillis();
+			String[] autoCompletionWords = ac.suggestAutoCompletion(q.trim());
+			long acEnd = System.currentTimeMillis();
+			String cands3 = autoCompletionWords.length == 0 ? "[]" : "[\"" + StringUtils.join(autoCompletionWords, "\",\"") + "\"]";
+			String acStr = "{\"suggest\":" + cands3 + ", \"time\":" + (acEnd - acStart) + "}";
+			
+			returnStr = "[" + spellcheckerStr + ", " + acStr + ", " + trStr + "]";
 		}
 		
 		writer.print(returnStr);
@@ -210,4 +210,10 @@ public class Suggest extends HttpServlet {
 		return accuracy;
 	}
 	
+	private String[] stringArrayTrim(String[] array) {
+		for (int i=0; i<array.length; i++) {
+			array[i] = array[i].trim();
+		}
+		return array;
+	}
 }

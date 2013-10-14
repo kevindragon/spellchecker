@@ -2,9 +2,6 @@
     <wb-module deploy-name="spellchecker">
         <wb-resource deploy-path="/" source-path="/WebContent" tag="defaultRootSource"/>
         <wb-resource deploy-path="/WEB-INF/classes" source-path="/src"/>
-        <wb-resource deploy-path="/WEB-INF/classes" source-path="/lucene-core"/>
-        <wb-resource deploy-path="/WEB-INF/classes" source-path="/lucene-suggest"/>
-        <wb-resource deploy-path="/WEB-INF/classes" source-path="/lucene-analyzer"/>
         <property name="java-output-path" value="/spellchecker/build/classes"/>
         <property name="context-root" value="spellchecker"/>
     </wb-module>
