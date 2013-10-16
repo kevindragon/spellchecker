@@ -49,7 +49,7 @@ public class FrontEndAutoCompletion {
 	/**
 	 * 一个词在语料库中至少出来的次数
 	 */
-	private int minOccurrence = 1;
+	private int minOccurrence = 3;
 	
 	/**
 	 * 构造函数，初始化配置、词典、分词器
@@ -104,7 +104,7 @@ public class FrontEndAutoCompletion {
 	public boolean containSingleCharAfterSeg(String word) {
 		boolean bool = false;
 		String[] segs = seg(word);
-		for (int i=0; i<segs.length; i++) {
+		for (int i=0; i<segs.length-1; i++) {
 			if (segs[i].length() == 1) {
 				bool = true;
 				break;
@@ -207,7 +207,7 @@ public class FrontEndAutoCompletion {
 		// 前面缺词，当分词后开头是一个字的时候才去查找候选词
 		String[][] frontCandidates = null;
 		long[] frontProbability = null;
-		if (seg[0].length() == 1) {
+		if (seg.length > 0 && seg[0].length() == 1) {
 			String[] candidatesStart = getStartSuggestions(seg[0]);
 			if (candidatesStart.length > 0) {
 				frontCandidates = new String[candidatesStart.length][seg.length];
@@ -220,6 +220,7 @@ public class FrontEndAutoCompletion {
 					}
 					frontWord = StringUtils.join(frontCandidates[i], "");
 					frontProbability[i] = query.getTotalHits(frontWord);
+System.out.println("front: " + frontWord + " - " + frontProbability[i]);
 					if (frontProbability[i] >= minOccurrence) {
 						addCandidate(candidates, probability, frontWord, frontProbability[i]);
 					}
@@ -243,6 +244,7 @@ public class FrontEndAutoCompletion {
 				endCandidates[i][j] = candidateEnd[i];
 				endWord = StringUtils.join(endCandidates[i], "");
 				endProbability[i] = query.getTotalHits(endWord);
+System.out.println("end: " + endWord + " - " + endProbability[i]);
 				if (endProbability[i] >= minOccurrence) {
 					addCandidate(candidates, probability, endWord, endProbability[i]);
 				}
@@ -267,6 +269,7 @@ public class FrontEndAutoCompletion {
 					frontEndCandidates[i][k] = endCandidates[j][endCandidates[j].length-1];
 					frontEndWord = StringUtils.join(frontEndCandidates[i], "");
 					long frontEndProbability = query.getTotalHits(frontEndWord);
+System.out.println("front-end: " + frontEndWord + " - " + frontEndProbability);
 					if (frontEndProbability >= minOccurrence) {
 						addCandidate(candidates, probability, frontEndWord, frontEndProbability);
 					}
@@ -279,9 +282,9 @@ public class FrontEndAutoCompletion {
 		// 去掉那些补全后分词仍然有一个字的字符串
 		ArrayList<String> list = new ArrayList<String>();
 		for (int i=0; i<allCandidates.length; i++) {
-			if (!containSingleCharAfterSeg(allCandidates[i])) {
+//			if (!containSingleCharAfterSeg(allCandidates[i])) {
 				list.add(allCandidates[i]);
-			}
+//			}
 		}
 		int maxNum = Math.min(10, list.size());
 		String[] ret = new String[maxNum];
