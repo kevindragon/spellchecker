@@ -25,6 +25,8 @@ public class FrontEndAutoCompletion {
 	 * 前向和后向的词典
 	 */
 	private Trie[] lexicon = null;
+	
+	private AutoCompleteExclude exclude = null;
 
 	/**
 	 * IKAnalyzer的分词器
@@ -49,7 +51,7 @@ public class FrontEndAutoCompletion {
 	/**
 	 * 一个词在语料库中至少出来的次数
 	 */
-	private int minOccurrence = 3;
+	private int minOccurrence = 2;
 	
 	/**
 	 * 构造函数，初始化配置、词典、分词器
@@ -68,6 +70,7 @@ public class FrontEndAutoCompletion {
 		}
 		
 		lexicon = Lexicon.loadLexicon(webroot+prop.getProperty("phrase.dic"));
+		exclude = new AutoCompleteExclude(webroot+prop.getProperty("exclude.dic"));
 		segmenter = new IKSegmenter(new StringReader(""), true);
 	}
 
@@ -203,6 +206,9 @@ public class FrontEndAutoCompletion {
 		query = new LuceneQuery(prop.getProperty("luceneserver.host") + 
 				prop.getProperty("luceneserver.path"));
 		String[] seg = seg(word);
+		if (seg.length == 1 && seg[0].length() == 1) {
+			return new String[]{};
+		}
 
 		// 前面缺词，当分词后开头是一个字的时候才去查找候选词
 		String[][] frontCandidates = null;
@@ -276,15 +282,30 @@ System.out.println("front-end: " + frontEndWord + " - " + frontEndProbability);
 				}
 			}
 		}
+		
+		// 不分词的情况下，判断是否有词可以补全
+		if (word.length() < 10) {
+			String[] wholeAtStart = getStartSuggestions(word);
+			for (int i=0; i<wholeAtStart.length; i++) {
+				long candProb = query.getTotalHits(wholeAtStart[i]);
+				if (candProb >= minOccurrence) {
+					addCandidate(candidates, probability, wholeAtStart[i], candProb);
+				}
+			}
+			String[] wholeAtEnd = getEndSuggestions(word);
+			for (int i=0; i<wholeAtEnd.length; i++) {
+				long candProb = query.getTotalHits(wholeAtEnd[i]);
+				if (candProb >= minOccurrence) {
+					addCandidate(candidates, probability, wholeAtEnd[i], candProb);
+				}
+			}
+		}
 
-		String[] allCandidates = new String[candidates.size()];
-		candidates.toArray(allCandidates);
-		// 去掉那些补全后分词仍然有一个字的字符串
 		ArrayList<String> list = new ArrayList<String>();
-		for (int i=0; i<allCandidates.length; i++) {
-//			if (!containSingleCharAfterSeg(allCandidates[i])) {
-				list.add(allCandidates[i]);
-//			}
+		for (int i=0; i<candidates.size(); i++) {
+			if (!list.contains(candidates.get(i)) && !exclude.contains(candidates.get(i))) {
+				list.add(candidates.get(i));
+			}
 		}
 		int maxNum = Math.min(10, list.size());
 		String[] ret = new String[maxNum];

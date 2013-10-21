@@ -27,8 +27,8 @@
 			<attribute name="owner.project.facets" value="java"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/IKAnalyzer_2012FF_hf1_lexiscn.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/commons-lang3-3.1.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/log4j-1.2.16.jar"/>
+	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/IKAnalyzer_2012FF_hf1_lexiscn_v2.jar"/>
 	<classpathentry kind="output" path="build/classes"/>
 </classpath>

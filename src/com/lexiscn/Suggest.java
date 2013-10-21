@@ -148,6 +148,8 @@ public class Suggest extends HttpServlet {
 			String acStr = "{\"suggest\":" + cands3 + ", \"time\":" + (acEnd - acStart) + "}";
 			
 			returnStr = "[" + spellcheckerStr + ", " + acStr + ", " + trStr + "]";
+		} else {
+			returnStr = "[{\"suggest\":[], \"time\":0, \"accuracy\":0.62}, {\"suggest\":[], \"time\":0}, {\"suggest\":[], \"time\":0}]";
 		}
 		
 		writer.print(returnStr);
