@@ -9,7 +9,6 @@ import java.util.Properties;
 
 import javax.servlet.ServletConfig;
 
-import org.apache.commons.lang3.StringUtils;
 import org.wltea.analyzer.core.IKSegmenter;
 import org.wltea.analyzer.core.Lexeme;
 
@@ -51,7 +50,7 @@ public class FrontEndAutoCompletion {
 	/**
 	 * 一个词在语料库中至少出来的次数
 	 */
-	private int minOccurrence = 2;
+	private int minOccurrence = 1;
 	
 	/**
 	 * 构造函数，初始化配置、词典、分词器
@@ -149,7 +148,7 @@ public class FrontEndAutoCompletion {
 		String[] suggestions = null;
 
 		Trie hm = lexicon[1];
-		ArrayList<String> start = hm.search(word);
+		ArrayList<String> start = hm.search(new StringBuffer(word).reverse().toString());
 		StringBuffer element = new StringBuffer();
 		// 把倒序排列的后缀字符字典搬正
 		for (int i=0; i<start.size(); i++) {
@@ -211,20 +210,14 @@ public class FrontEndAutoCompletion {
 		}
 
 		// 前面缺词，当分词后开头是一个字的时候才去查找候选词
-		String[][] frontCandidates = null;
 		long[] frontProbability = null;
+		String[] candidatesStart = getStartSuggestions(seg[0]);
 		if (seg.length > 0 && seg[0].length() == 1) {
-			String[] candidatesStart = getStartSuggestions(seg[0]);
 			if (candidatesStart.length > 0) {
-				frontCandidates = new String[candidatesStart.length][seg.length];
 				frontProbability = new long[candidatesStart.length];
 				String frontWord;
 				for (int i=0; i<candidatesStart.length; i++) {
-					frontCandidates[i][0] = candidatesStart[i];
-					for (int j=1; j<seg.length; j++) {
-						frontCandidates[i][j] = seg[j];
-					}
-					frontWord = StringUtils.join(frontCandidates[i], "");
+					frontWord = candidatesStart[i] + word.substring(seg[0].length());
 					frontProbability[i] = query.getTotalHits(frontWord);
 System.out.println("front: " + frontWord + " - " + frontProbability[i]);
 					if (frontProbability[i] >= minOccurrence) {
@@ -235,20 +228,13 @@ System.out.println("front: " + frontWord + " - " + frontProbability[i]);
 		}
 
 		// 后面缺词
-		String[][] endCandidates = null;
 		long[] endProbability = null;
 		String[] candidateEnd = getEndSuggestions(seg[seg.length-1]);
 		if (candidateEnd.length > 0) {
-			endCandidates = new String[candidateEnd.length][seg.length];
 			endProbability = new long[candidateEnd.length];
 			String endWord;
 			for (int i=0; i<candidateEnd.length; i++) {
-				int j = 0;
-				for (; j<seg.length-1; j++) {
-					endCandidates[i][j] = seg[j];
-				}
-				endCandidates[i][j] = candidateEnd[i];
-				endWord = StringUtils.join(endCandidates[i], "");
+				endWord = word.substring(0, word.length()-seg[seg.length-1].length()) + candidateEnd[i];
 				endProbability[i] = query.getTotalHits(endWord);
 System.out.println("end: " + endWord + " - " + endProbability[i]);
 				if (endProbability[i] >= minOccurrence) {
@@ -259,21 +245,16 @@ System.out.println("end: " + endWord + " - " + endProbability[i]);
 		}
 
 		// 前后两端都缺词
-		String[][] frontEndCandidates = null;
-		if (frontCandidates != null && endCandidates != null) {
-			frontEndCandidates = new String[frontCandidates.length*endCandidates.length][seg.length];
+		if (frontProbability != null && endProbability != null) {
 			String frontEndWord = null;
-			for (int i=0; i<frontCandidates.length; i++) {
+			for (int i=0; i<frontProbability.length; i++) {
 				if (frontProbability[i] <= 0) {
 					continue;
 				}
-				for (int j=0; j<endCandidates.length; j++) {
-					int k = 0;
-					for (; k<frontCandidates[i].length-1; k++) {
-						frontEndCandidates[i][k] = frontCandidates[i][k];
-					}
-					frontEndCandidates[i][k] = endCandidates[j][endCandidates[j].length-1];
-					frontEndWord = StringUtils.join(frontEndCandidates[i], "");
+				for (int j=0; j<endProbability.length; j++) {
+					frontEndWord = candidatesStart[i] 
+							+ word.substring(0, word.length()-seg[seg.length-1].length()) 
+							+ candidateEnd[j];
 					long frontEndProbability = query.getTotalHits(frontEndWord);
 System.out.println("front-end: " + frontEndWord + " - " + frontEndProbability);
 					if (frontEndProbability >= minOccurrence) {
@@ -287,6 +268,7 @@ System.out.println("front-end: " + frontEndWord + " - " + frontEndProbability);
 		if (word.length() < 10) {
 			String[] wholeAtStart = getStartSuggestions(word);
 			for (int i=0; i<wholeAtStart.length; i++) {
+System.out.println("no seg front: " + wholeAtStart[i]);
 				long candProb = query.getTotalHits(wholeAtStart[i]);
 				if (candProb >= minOccurrence) {
 					addCandidate(candidates, probability, wholeAtStart[i], candProb);
@@ -294,6 +276,7 @@ System.out.println("front-end: " + frontEndWord + " - " + frontEndProbability);
 			}
 			String[] wholeAtEnd = getEndSuggestions(word);
 			for (int i=0; i<wholeAtEnd.length; i++) {
+System.out.println("no seg end: " + wholeAtEnd[i]);
 				long candProb = query.getTotalHits(wholeAtEnd[i]);
 				if (candProb >= minOccurrence) {
 					addCandidate(candidates, probability, wholeAtEnd[i], candProb);
