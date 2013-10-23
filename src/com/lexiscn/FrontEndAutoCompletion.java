@@ -68,7 +68,7 @@ public class FrontEndAutoCompletion {
 			e1.printStackTrace();
 		}
 		
-		lexicon = Lexicon.loadLexicon(webroot+prop.getProperty("phrase.dic"));
+		lexicon = Lexicon.loadLexicon(webroot+prop.getProperty("phrase.dic"), 6);
 		exclude = new AutoCompleteExclude(webroot+prop.getProperty("exclude.dic"));
 		segmenter = new IKSegmenter(new StringReader(""), true);
 	}
@@ -253,7 +253,7 @@ System.out.println("end: " + endWord + " - " + endProbability[i]);
 				}
 				for (int j=0; j<endProbability.length; j++) {
 					frontEndWord = candidatesStart[i] 
-							+ word.substring(0, word.length()-seg[seg.length-1].length()) 
+							+ word.substring(seg[0].length(), word.length()-seg[seg.length-1].length()) 
 							+ candidateEnd[j];
 					long frontEndProbability = query.getTotalHits(frontEndWord);
 System.out.println("front-end: " + frontEndWord + " - " + frontEndProbability);
@@ -290,7 +290,7 @@ System.out.println("no seg end: " + wholeAtEnd[i]);
 				list.add(candidates.get(i));
 			}
 		}
-		int maxNum = Math.min(10, list.size());
+		int maxNum = Math.min(20, list.size());
 		String[] ret = new String[maxNum];
 		for (int i=0; i<maxNum; i++) {
 			ret[i] = list.get(i);

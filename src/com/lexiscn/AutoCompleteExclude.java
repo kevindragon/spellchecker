@@ -14,7 +14,7 @@ public class AutoCompleteExclude {
 	public AutoCompleteExclude(String filepath) {
 		this.filepath = filepath;
 
-		dic = Lexicon.loadLexicon(this.filepath);
+		dic = Lexicon.loadLexicon(this.filepath, 100);
 	}
 	
 	public boolean contains(String word) {

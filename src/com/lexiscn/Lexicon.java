@@ -32,10 +32,11 @@ public class Lexicon {
 	 * 从文件加载词语，同时生成Trie和反向的Trie
 	 * @return Trie[]
 	 */
-	public static Trie[] loadLexicon(String filename) {
+	public static Trie[] loadLexicon(String filename, int maxLength) {
 		if (null != lexicon) {
 			return lexicon;
 		}
+
 		Trie[] lexicon = {new Trie(), new Trie()};
 
 		BufferedReader br = null;
@@ -43,7 +44,8 @@ public class Lexicon {
 			br = new BufferedReader(new FileReader(filename));
 			String line;
 			while ((line = br.readLine()) != null) {
-				if (line.length() <= 1 || line.length() > 5) {
+				line = line.trim();
+				if (line.length() <= 1 || line.length() > maxLength) {
 					continue;
 				}
 				StringBuffer sb = new StringBuffer(line);
