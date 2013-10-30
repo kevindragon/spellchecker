@@ -219,7 +219,6 @@ public class FrontEndAutoCompletion {
 				for (int i=0; i<candidatesStart.length; i++) {
 					frontWord = candidatesStart[i] + word.substring(seg[0].length());
 					frontProbability[i] = query.getTotalHits(frontWord);
-System.out.println("front: " + frontWord + " - " + frontProbability[i]);
 					if (frontProbability[i] >= minOccurrence) {
 						addCandidate(candidates, probability, frontWord, frontProbability[i]);
 					}
@@ -236,7 +235,6 @@ System.out.println("front: " + frontWord + " - " + frontProbability[i]);
 			for (int i=0; i<candidateEnd.length; i++) {
 				endWord = word.substring(0, word.length()-seg[seg.length-1].length()) + candidateEnd[i];
 				endProbability[i] = query.getTotalHits(endWord);
-System.out.println("end: " + endWord + " - " + endProbability[i]);
 				if (endProbability[i] >= minOccurrence) {
 					addCandidate(candidates, probability, endWord, endProbability[i]);
 				}
@@ -256,7 +254,6 @@ System.out.println("end: " + endWord + " - " + endProbability[i]);
 							+ word.substring(seg[0].length(), word.length()-seg[seg.length-1].length()) 
 							+ candidateEnd[j];
 					long frontEndProbability = query.getTotalHits(frontEndWord);
-System.out.println("front-end: " + frontEndWord + " - " + frontEndProbability);
 					if (frontEndProbability >= minOccurrence) {
 						addCandidate(candidates, probability, frontEndWord, frontEndProbability);
 					}
@@ -268,7 +265,6 @@ System.out.println("front-end: " + frontEndWord + " - " + frontEndProbability);
 		if (word.length() < 10) {
 			String[] wholeAtStart = getStartSuggestions(word);
 			for (int i=0; i<wholeAtStart.length; i++) {
-System.out.println("no seg front: " + wholeAtStart[i]);
 				long candProb = query.getTotalHits(wholeAtStart[i]);
 				if (candProb >= minOccurrence) {
 					addCandidate(candidates, probability, wholeAtStart[i], candProb);
@@ -276,7 +272,6 @@ System.out.println("no seg front: " + wholeAtStart[i]);
 			}
 			String[] wholeAtEnd = getEndSuggestions(word);
 			for (int i=0; i<wholeAtEnd.length; i++) {
-System.out.println("no seg end: " + wholeAtEnd[i]);
 				long candProb = query.getTotalHits(wholeAtEnd[i]);
 				if (candProb >= minOccurrence) {
 					addCandidate(candidates, probability, wholeAtEnd[i], candProb);
